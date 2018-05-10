@@ -3,7 +3,7 @@ Go beyond pixel detection with AutoIt.
 
 ## Overview
 
-I needed the ability for [AutoIt](https:*www.autoitscript.com) to find something on the screen matching a reference image. Unfortunately, this is not an available built-in feature. There are functions available for checking individual pixels, but no way to match groups of pixels or images.
+I needed the ability for [AutoIt](https://www.autoitscript.com) to find something on the screen matching a reference image. Unfortunately, this is not an available built-in feature. There are functions available for checking individual pixels, but no way to match groups of pixels or images.
 
 I found a solution in [this thread](https://www.autoitscript.com/forum/topic/148005-imagesearch-usage-explanation/?page=4). The key is the [AutoHotkey ImageSearch](https://www.autohotkey.com/docs/commands/ImageSearch.htm) function. Someone extracted the **ImageSearch** code from *AutoHotkey*, packed it up in to convenient DLLs, and put together a **UDF** library that acts as a wrapper.
 
