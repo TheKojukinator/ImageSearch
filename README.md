@@ -29,6 +29,9 @@ $result = _ImageSearch($target, 1)
 ; If found, move the mouse to it
 If IsArray($result) Then MouseMove($result[0], $result[1])
 ```
+
+![Demo.au3 being executed](./Screenshots/Demo.gif)
+
 ## To-Do
 
 - [ ] Improve code documentation via comments.
