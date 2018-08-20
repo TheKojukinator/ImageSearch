@@ -34,4 +34,8 @@ If IsArray($result) Then MouseMove($result[0], $result[1])
 
 ## To-Do
 
-- [ ] Improve code documentation via comments.
+* [ ] Improve code documentation via comments.
+
+## Known Issues
+
+* #1
