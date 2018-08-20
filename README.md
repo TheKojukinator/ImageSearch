@@ -38,4 +38,4 @@ If IsArray($result) Then MouseMove($result[0], $result[1])
 
 ## Known Issues
 
-#1
+GH-1
