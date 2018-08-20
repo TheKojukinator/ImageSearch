@@ -3,16 +3,16 @@
 #include <WinAPIFiles.au3>  ; for _WinAPI_Wow64EnableWow64FsRedirection
 
 ; Make sure the DLL path exists, FileInstall doesn't create folders
-If Not FileExists(".\ImageSearch\dll\") Then DirCreate(".\ImageSearch\dll\")
+If Not FileExists("ImageSearch\dll\") Then DirCreate("ImageSearch\dll\")
 
 ; This script's functionality depends on these DLLs being present in the script's path
 #Region Required DLLs
-If Not FileExists(".\ImageSearch\dll\ImageSearchDLLx32.dll") Then FileInstall(".\ImageSearch\dll\ImageSearchDLLx32.dll", ".\ImageSearch\dll\ImageSearchDLLx32.dll")
-If Not FileExists(".\ImageSearch\dll\ImageSearchDLLx64.dll") Then FileInstall(".\ImageSearch\dll\ImageSearchDLLx64.dll", ".\ImageSearch\dll\ImageSearchDLLx64.dll")
-; Microsoft Visual C++ Redistributable x64
-If Not FileExists(".\ImageSearch\dll\msvcr110d.dll") Then FileInstall(".\ImageSearch\dll\msvcr110d.dll", ".\ImageSearch\dll\msvcr110d.dll")
+If Not FileExists("ImageSearch\dll\ImageSearchDLLx32.dll") Then FileInstall("ImageSearch\dll\ImageSearchDLLx32.dll", "ImageSearch\dll\ImageSearchDLLx32.dll")
+If Not FileExists("ImageSearch\dll\ImageSearchDLLx64.dll") Then FileInstall("ImageSearch\dll\ImageSearchDLLx64.dll", "ImageSearch\dll\ImageSearchDLLx64.dll")
 ; Microsoft Visual C++ Redistributable x32
-If Not FileExists(".\ImageSearch\dll\msvcr110.dll") Then FileInstall(".\ImageSearch\dll\msvcr110.dll", ".\ImageSearch\dll\msvcr110.dll")
+If Not FileExists("ImageSearch\dll\msvcr110.dll") Then FileInstall("ImageSearch\dll\msvcr110.dll", "ImageSearch\dll\msvcr110.dll")
+; Microsoft Visual C++ Redistributable x64
+If Not FileExists("ImageSearch\dll\msvcr110d.dll") Then FileInstall("ImageSearch\dll\msvcr110d.dll", "ImageSearch\dll\msvcr110d.dll")
 #EndRegion
 
 ; When working with multiple monitors, we need to determine absolute desktop dimensions manually, so we can escape the boundaries of the primary monitor
@@ -30,20 +30,17 @@ Local $hImageSearchDLL = -1
 #Region ImageSearch Startup/Shutdown
 Func _ImageSearchStartup()
     _WinAPI_Wow64EnableWow64FsRedirection(True)
-    ; Check if running on x64 or x32 Windows
-    ; @OSArch Returns one of the following: "X86", "IA64", "X64" - this is the architecture type of the currently running operating system.
-    Local $sOSArch = @OSArch
-    ; Check if using x64 AutoIt
-    ; @AutoItX64 Returns 1 if the script is running under the native x64 version of AutoIt.
-    Local $sAutoItX64 = @AutoItX64
-    If $sOSArch = "X86" Or $sAutoItX64 = 0 Then
-        cr("+>" & "@OSArch=" & $sOSArch & @TAB & "@AutoItX64=" & $sAutoItX64 & @TAB & "therefore using x32 ImageSearch DLL")
-        $hImageSearchDLL = DllOpen(".\ImageSearch\dll\ImageSearchDLLx32.dll")
-        If $hImageSearchDLL = -1 Then Return "DllOpen failure"
-    ElseIf $sOSArch = "X64" And $sAutoItX64 = 1 Then
-        cr("+>" & "@OSArch=" & $sOSArch & @TAB & "@AutoItX64=" & $sAutoItX64 & @TAB & "therefore using x64 ImageSearch DLL")
-        $hImageSearchDLL = DllOpen(".\ImageSearch\dll\ImageSearchDLLx64.dll")
-        If $hImageSearchDLL = -1 Then Return "DllOpen failure"
+    ; Check OS and AutoIt architectures
+    ; @OSArch - Returns one of the following: "X86", "IA64", "X64" - this is the architecture type of the currently running operating system
+    ; @AutoItX64 - Returns 1 if the script is running under the native x64 version of AutoIt
+    If @OSArch = "X86" Or @AutoItX64 = 0 Then
+        cr("@OSArch=" & @OSArch & " | " & "@AutoItX64=" & @AutoItX64 & " | " & "Using x32 ImageSearch DLL")
+        $hImageSearchDLL = DllOpen("ImageSearch\dll\ImageSearchDLLx32.dll")
+        If $hImageSearchDLL = -1 Then Return "DllOpen Error: " & @error
+    ElseIf @OSArch = "X64" And @AutoItX64 = 1 Then
+        cr("@OSArch=" & @OSArch & " | " & "@AutoItX64=" & @AutoItX64 & " | " & "Using x64 ImageSearch DLL")
+        $hImageSearchDLL = DllOpen("ImageSearch\dll\ImageSearchDLLx64.dll")
+        If $hImageSearchDLL = -1 Then Return "DllOpen Error: " & @error
     Else
         Return "Inconsistent or incompatible Script/Windows/CPU Architecture"
     EndIf
@@ -53,7 +50,7 @@ EndFunc ; _ImageSearchStartup
 Func _ImageSearchShutdown()
     DllClose($hImageSearchDLL)
     _WinAPI_Wow64EnableWow64FsRedirection(False)
-    cr(">" & "_ImageSearchShutdown() completed")
+    cr("_ImageSearchShutdown() completed")
     Return True
 EndFunc ; _ImageSearchShutdown
 #EndRegion ImageSearch Startup/Shutdown
@@ -84,10 +81,10 @@ Func _ImageSearchArea($findImage, $resultPosition, $left, $top, $right, $bottom,
     If Not FileExists($findImage) Then Return "Image File not found"
     If $tolerance < 0 Or $tolerance > 255 Then $tolerance = 0
     If $hImageSearchDLL = -1 Then _ImageSearchStartup()
-    If $transparency <> 0 Then $findImage = "*" & $transparency & " " & $findImage
+    If $transparency <> 0 Then $findImage = "*Trans" & $transparency & " " & $findImage
     If $tolerance > 0 Then $findImage = "*" & $tolerance & " " & $findImage
     Local $dllResult = DllCall($hImageSearchDLL, "str", "ImageSearch", "int", $left, "int", $top, "int", $right, "int", $bottom, "str", $findImage)
-    If @error Then Return "DllCall Error=" & @error
+    If @error Then Return "DllCall Error: " & @error
     If $dllResult = "0" Or Not IsArray($dllResult) Or $dllResult[0] = "0" Then Return False
     Local $array = StringSplit($dllResult[0], "|")
     If (UBound($array) >= 4) Then
@@ -162,7 +159,7 @@ EndFunc ; _ImageSearch
 ;===============================================================================
 Func _WaitForImageSearch($findImage, $waitSecs, $resultPosition, $tolerance = 0, $transparency = 0, $hWindow = 0)
     $waitSecs = $waitSecs * 1000
-    $startTime = TimerInit()
+    Local $startTime = TimerInit()
     While TimerDiff($startTime) < $waitSecs
         Sleep(100)
         Local $result = _ImageSearch($findImage, $resultPosition, $tolerance, $transparency, $hWindow)
@@ -200,7 +197,7 @@ EndFunc ; _WaitForImageSearch
 ;===============================================================================
 Func _WaitForImagesSearch($findImage, $waitSecs, $resultPosition, $tolerance = 0, $transparency = 0, $hWindow = 0)
     $waitSecs = $waitSecs * 1000
-    $startTime = TimerInit()
+    Local $startTime = TimerInit()
     While TimerDiff($startTime) < $waitSecs
         For $i = 1 To $findImage[0]
             Sleep(100)
@@ -215,15 +212,15 @@ EndFunc ; _WaitForImagesSearch
 #EndRegion ImageSearch UDF
 
 #Region Custom ConsoleWrite/debug Function
-Func cr($text = "", $addCR = 1, $printTime = False) ; Print to console
+Func cr($text = "", $addCR = 1, $printTime = True) ; Print to console
     Local Static $sToolTip
     If Not @Compiled Then
-        If $printTime Then ConsoleWrite(@HOUR & ":" & @MIN & ":" & @SEC & ":" & @MSEC & " ")
+        If $printTime Then ConsoleWrite("+>" & @HOUR & ":" & @MIN & ":" & @SEC & " ")
         ConsoleWrite($text)
         If $addCR >= 1 Then ConsoleWrite(@CR)
         If $addCR = 2 Then ConsoleWrite(@CR)
     Else
-        If $printTime Then $sToolTip &= @HOUR & ":" & @MIN & ":" & @SEC & ":" & @MSEC & " "
+        If $printTime Then $sToolTip &= "+>" & @HOUR & ":" & @MIN & ":" & @SEC & " "
         $sToolTip &= $text
         If $addCR >= 1 Then $sToolTip &= @CR
         If $addCR = 2 Then $sToolTip &= @CR
